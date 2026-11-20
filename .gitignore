@@ -6,6 +6,7 @@ build/
 *.hex
 
 # Temporary and editor files
+.firebase/
 .vscode/
 .idea/
 *.tmp
