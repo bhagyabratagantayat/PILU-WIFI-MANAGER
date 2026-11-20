@@ -121,6 +121,18 @@ document.addEventListener('DOMContentLoaded', function() {
       <h2 style="font-size:1.3rem;font-weight:700">PILU Admin Login</h2>
       <p style="font-size:0.8rem;color:var(--muted);margin-top:4px">Smart ESP32 Wi-Fi Repeater Administration</p>
     </div>
+    <div id="cloudNoticeBox" style="display:none;margin-bottom:18px;background:rgba(0,180,216,0.08);border:1px solid rgba(0,180,216,0.3);padding:14px;border-radius:8px;text-align:left">
+      <div style="font-weight:700;color:var(--accent);font-size:0.9rem;margin-bottom:6px">⚡ Recommended: Direct Local Dashboard</div>
+      <p style="font-size:0.8rem;color:var(--muted);line-height:1.45;margin-bottom:12px">
+        Because this cloud portal runs on <strong>HTTPS</strong>, web browsers block direct calls to local device IP (<code>192.168.4.1</code>) due to <em>Mixed Content</em> security.<br><br>
+        <strong>Connect phone/PC to PILU Wi-Fi and open the onboard dashboard directly:</strong>
+      </p>
+      <a href="http://192.168.4.1" class="btn" style="width:100%;justify-content:center;text-decoration:none;font-size:0.88rem;background:var(--primary);color:#041426;font-weight:600">
+        Open Direct Local Dashboard (http://192.168.4.1) &rarr;
+      </a>
+      <div style="font-size:0.75rem;color:var(--muted);text-align:center;margin-top:8px">Default Admin Password: <code>admin2802</code></div>
+    </div>
+
     <div id="loginAlert" class="alert alert-danger"></div>
     <form id="loginForm" onsubmit="handleLogin(event)">
       <div class="form-group">
@@ -129,17 +141,6 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       <button type="submit" id="loginBtn" class="btn" style="width:100%;justify-content:center;padding:10px">Sign In to Dashboard</button>
     </form>
-
-    <div id="cloudNoticeBox" style="display:none;margin-top:16px;background:rgba(0,180,216,0.08);border:1px solid rgba(0,180,216,0.3);padding:14px;border-radius:8px;text-align:left">
-      <div style="font-weight:700;color:var(--accent);font-size:0.88rem;margin-bottom:6px">⚡ Recommended: Direct Local Dashboard</div>
-      <p style="font-size:0.8rem;color:var(--muted);line-height:1.45;margin-bottom:12px">
-        Because this page is running on cloud HTTPS (<strong>web.app</strong>), modern browser security blocks direct calls to the local ESP32 IP (<strong>192.168.4.1</strong>) due to Mixed Content rules.<br><br>
-        <strong>Connect your device to PILU Wi-Fi and open the onboard dashboard directly:</strong>
-      </p>
-      <a href="http://192.168.4.1" class="btn" style="width:100%;justify-content:center;text-decoration:none;font-size:0.88rem;background:var(--primary);color:#041426">
-        Open Direct Local Dashboard (http://192.168.4.1) &rarr;
-      </a>
-    </div>
 
   </div>
 </div>
@@ -435,18 +436,6 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       <button type="submit" id="saveProfBtn" class="btn" style="width:100%;justify-content:center;margin-top:10px">Save Profile</button>
     </form>
-
-    <div id="cloudNoticeBox" style="display:none;margin-top:16px;background:rgba(0,180,216,0.08);border:1px solid rgba(0,180,216,0.3);padding:14px;border-radius:8px;text-align:left">
-      <div style="font-weight:700;color:var(--accent);font-size:0.88rem;margin-bottom:6px">⚡ Recommended: Direct Local Dashboard</div>
-      <p style="font-size:0.8rem;color:var(--muted);line-height:1.45;margin-bottom:12px">
-        Because this page is running on cloud HTTPS (<strong>web.app</strong>), modern browser security blocks direct calls to the local ESP32 IP (<strong>192.168.4.1</strong>) due to Mixed Content rules.<br><br>
-        <strong>Connect your device to PILU Wi-Fi and open the onboard dashboard directly:</strong>
-      </p>
-      <a href="http://192.168.4.1" class="btn" style="width:100%;justify-content:center;text-decoration:none;font-size:0.88rem;background:var(--primary);color:#041426">
-        Open Direct Local Dashboard (http://192.168.4.1) &rarr;
-      </a>
-    </div>
-
   </div>
 </div>
 
@@ -507,6 +496,12 @@ async function apiCall(endpoint, method = 'GET', body = null) {
 }
 
 async function checkAuth() {
+  if (isCloudMode && !localStorage.getItem('pilu_device_url')) {
+    // In cloud mode without explicit custom proxy, keep loginOverlay open
+    // and avoid firing background fetch to prevent Mixed Content errors
+    document.getElementById('loginOverlay').style.display = 'flex';
+    return;
+  }
   const data = await apiCall('/api/auth/check');
   if (data && data.authenticated) {
     document.getElementById('loginOverlay').style.display = 'none';
@@ -524,7 +519,7 @@ async function handleLogin(e) {
   btn.disabled = true;
 
   try {
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(getApiUrl('/api/auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: pass })
@@ -539,7 +534,11 @@ async function handleLogin(e) {
       showAlert('loginAlert', (data && data.message) ? data.message : 'Invalid password', false);
     }
   } catch (err) {
-    showAlert('loginAlert', 'Failed to reach ESP32 local server', false);
+    if (isCloudMode && !localStorage.getItem('pilu_device_url')) {
+      showAlert('loginAlert', 'Browser blocked HTTP connection from HTTPS origin (Mixed Content). Use the direct local link above to http://192.168.4.1', false);
+    } else {
+      showAlert('loginAlert', 'Failed to reach ESP32 local server', false);
+    }
   } finally {
     btn.innerHTML = 'Sign In to Dashboard';
     btn.disabled = false;
