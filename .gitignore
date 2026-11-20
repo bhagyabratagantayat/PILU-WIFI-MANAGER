@@ -1,0 +1,16 @@
+# Build artifacts
+build/
+*.bin
+*.elf
+*.map
+*.hex
+
+# Temporary and editor files
+.vscode/
+.idea/
+*.tmp
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
