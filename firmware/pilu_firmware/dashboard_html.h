@@ -1,0 +1,799 @@
+#ifndef PILU_DASHBOARD_HTML_H
+#define PILU_DASHBOARD_HTML_H
+
+#include <Arduino.h>
+
+/**
+ * @file dashboard_html.h
+ * @brief Embedded, responsive Single Page Application (HTML/CSS/JS) for local administration.
+ * Stored in flash memory (PROGMEM) with zero external CDN dependencies.
+ */
+
+const char INDEX_HTML[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PILU Wi-Fi Manager</title>
+<style>
+:root{--bg:#090e1a;--card:#131c31;--card-border:#202e4c;--primary:#00b4d8;--primary-glow:rgba(0,180,216,0.25);--accent:#90e0ef;--text:#f8fafc;--muted:#8292ab;--success:#10b981;--warn:#f59e0b;--danger:#ef4444;--radius:10px}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--card);border-bottom:1px solid var(--card-border);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50}
+.logo-box{display:flex;align-items:center;gap:12px}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--primary),#0077b6);border-radius:8px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px var(--primary-glow)}
+.logo-icon svg{width:22px;height:22px;fill:#fff}
+.logo-title{font-size:1.15rem;font-weight:700;letter-spacing:0.5px}
+.logo-sub{font-size:0.75rem;color:var(--muted)}
+.header-actions{display:flex;align-items:center;gap:12px}
+.status-pill{font-size:0.75rem;padding:4px 10px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.pill-online{background:rgba(16,185,129,0.15);color:var(--success);border:1px solid rgba(16,185,129,0.4)}
+.pill-offline{background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.4)}
+.pill-dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.btn-logout{background:transparent;border:1px solid var(--card-border);color:var(--muted);padding:6px 12px;border-radius:6px;font-size:0.8rem;cursor:pointer;transition:all 0.2s}
+.btn-logout:hover{color:var(--danger);border-color:var(--danger)}
+nav{display:flex;overflow-x:auto;background:#0d1424;border-bottom:1px solid var(--card-border);padding:0 16px;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.nav-tab{background:none;border:none;color:var(--muted);padding:12px 16px;font-size:0.88rem;font-weight:600;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.2s}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:20px}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:18px;margin-bottom:16px}
+.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px}
+.card-title{font-size:1rem;font-weight:600;color:var(--accent)}
+.data-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:0.88rem;border-bottom:1px solid rgba(255,255,255,0.03)}
+.data-row:last-child{border-bottom:none}
+.data-label{color:var(--muted)}
+.data-val{font-weight:600}
+.btn{background:var(--primary);color:#041426;border:none;padding:8px 16px;border-radius:6px;font-weight:600;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s}
+.btn:hover{filter:brightness(1.15);box-shadow:0 0 10px var(--primary-glow)}
+.btn-sm{padding:4px 10px;font-size:0.78rem}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-secondary{background:#22314d;color:var(--text)}
+.btn-secondary:hover{background:#2a3d60}
+.badge{padding:3px 8px;border-radius:4px;font-size:0.75rem;font-weight:600}
+.badge-primary{background:rgba(0,180,216,0.2);color:var(--primary);border:1px solid rgba(0,180,216,0.3)}
+.badge-secondary{background:rgba(144,224,239,0.15);color:var(--accent)}
+.badge-backup{background:rgba(130,146,171,0.2);color:var(--muted)}
+.badge-green{background:rgba(16,185,129,0.2);color:var(--success)}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:0.86rem}
+th{text-align:left;padding:10px;color:var(--muted);border-bottom:1px solid var(--card-border);font-weight:600}
+td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.form-group{margin-bottom:14px}
+label{display:block;font-size:0.82rem;color:var(--muted);margin-bottom:5px;font-weight:500}
+input,select{width:100%;background:#0a101f;border:1px solid var(--card-border);border-radius:6px;padding:9px 12px;color:var(--text);font-size:0.88rem}
+input:focus,select:focus{border-color:var(--primary);outline:none;box-shadow:0 0 8px var(--primary-glow)}
+.modal-overlay{position:fixed;inset:0;background:rgba(4,9,18,0.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-box{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);max-width:440px;width:100%;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+.alert{padding:10px 14px;border-radius:6px;font-size:0.85rem;margin-bottom:14px;display:none}
+.alert-danger{background:rgba(239,68,68,0.15);border:1px solid var(--danger);color:#fca5a5}
+.alert-success{background:rgba(16,185,129,0.15);border:1px solid var(--success);color:#6ee7b7}
+.signal-bar-wrap{display:inline-flex;align-items:flex-end;gap:2px;height:14px;margin-right:6px}
+.signal-bar{width:3px;background:var(--muted);border-radius:1px}
+.signal-bar.on{background:var(--primary)}
+.bar-1{height:30%}.bar-2{height:55%}.bar-3{height:80%}.bar-4{height:100%}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.2);border-top-color:currentColor;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="loginOverlay" class="modal-overlay">
+  <div class="modal-box">
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="logo-icon" style="margin:0 auto 12px;width:48px;height:48px">
+        <svg viewBox="0 0 24 24"><path d="M12 3C6.95 3 3.15 4.85 0 7.23L12 22 24 7.25C20.85 4.87 17.05 3 12 3zm0 3.5c3.8 0 7.2 1.25 9.8 3.05L12 19.9 2.2 9.55C4.8 7.75 8.2 6.5 12 6.5z"/></svg>
+      </div>
+      <h2 style="font-size:1.3rem;font-weight:700">PILU Admin Login</h2>
+      <p style="font-size:0.8rem;color:var(--muted);margin-top:4px">Smart ESP32 Wi-Fi Repeater Administration</p>
+    </div>
+    <div id="loginAlert" class="alert alert-danger"></div>
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>Admin Password</label>
+        <input type="password" id="adminPassInput" placeholder="Default: admin2802" required autofocus>
+      </div>
+      <button type="submit" id="loginBtn" class="btn" style="width:100%;justify-content:center;padding:10px">Sign In to Dashboard</button>
+    </form>
+  </div>
+</div>
+
+<header>
+  <div class="logo-box">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 3C6.95 3 3.15 4.85 0 7.23L12 22 24 7.25C20.85 4.87 17.05 3 12 3zm0 3.5c3.8 0 7.2 1.25 9.8 3.05L12 19.9 2.2 9.55C4.8 7.75 8.2 6.5 12 6.5z"/></svg>
+    </div>
+    <div>
+      <div class="logo-title">PILU Wi-Fi Manager</div>
+      <div class="logo-sub">ESP32 Repeater + NAT Router</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <div id="globalStatusPill" class="status-pill pill-offline">
+      <span class="pill-dot"></span><span id="globalStatusText">Connecting...</span>
+    </div>
+    <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
+  </div>
+</header>
+
+<nav>
+  <button class="nav-tab active" onclick="switchTab('dashboard')">Overview</button>
+  <button class="nav-tab" onclick="switchTab('profiles')">Wi-Fi Profiles</button>
+  <button class="nav-tab" onclick="switchTab('scanner')">Wi-Fi Scanner</button>
+  <button class="nav-tab" onclick="switchTab('hotspot')">Hotspot (AP)</button>
+  <button class="nav-tab" onclick="switchTab('clients')">Connected Clients</button>
+  <button class="nav-tab" onclick="switchTab('system')">System & Security</button>
+</nav>
+
+<main>
+  <!-- TAB 1: OVERVIEW -->
+  <div id="tab-dashboard" class="tab-content active">
+    <div class="grid-2">
+      <!-- Upstream Link Card -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Upstream Wi-Fi</span>
+          <span id="staStateBadge" class="badge badge-primary">Checking...</span>
+        </div>
+        <div class="data-row"><span class="data-label">Connected Network</span><span id="staSsid" class="data-val">--</span></div>
+        <div class="data-row"><span class="data-label">Uplink Priority</span><span id="staPriority" class="data-val">--</span></div>
+        <div class="data-row"><span class="data-label">Failover State</span><span id="staUplinkState" class="data-val">--</span></div>
+        <div class="data-row"><span class="data-label">Signal Strength</span><span id="staRssi" class="data-val">-- dBm</span></div>
+        <div class="data-row"><span class="data-label">IP Address</span><span id="staIp" class="data-val">--</span></div>
+        <div class="data-row"><span class="data-label">Gateway</span><span id="staGw" class="data-val">--</span></div>
+        <div class="data-row"><span class="data-label">Channel</span><span id="staChan" class="data-val">--</span></div>
+      </div>
+
+      <!-- Hotspot Card -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">PILU Hotspot (SoftAP)</span>
+          <span class="badge badge-green">Broadcasting</span>
+        </div>
+        <div class="data-row"><span class="data-label">Hotspot SSID</span><span id="apSsid" class="data-val">PILU</span></div>
+        <div class="data-row"><span class="data-label">Local Gateway IP</span><span class="data-val">192.168.4.1</span></div>
+        <div class="data-row"><span class="data-label">Connected Clients</span><span id="apClients" class="data-val" style="color:var(--primary)">0</span></div>
+        <div class="data-row"><span class="data-label">Subnet Mask</span><span class="data-val">255.255.255.0</span></div>
+        <div class="data-row"><span class="data-label">DHCP Server</span><span class="data-val">Active (192.168.4.2 - .10)</span></div>
+      </div>
+
+      <!-- NAT & Internet Health Card -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">NAT & Internet Routing</span>
+          <span id="netStateBadge" class="badge badge-primary">Online</span>
+        </div>
+        <div class="data-row"><span class="data-label">lwIP NAPT Status</span><span class="data-val" style="color:var(--success)">ENABLED (Active)</span></div>
+        <div class="data-row"><span class="data-label">Internet Connectivity</span><span id="netConn" class="data-val">--</span></div>
+        <div class="data-row"><span class="data-label">Ping Latency (1.1.1.1)</span><span id="netLatency" class="data-val">-- ms</span></div>
+        <div class="data-row"><span class="data-label">DNS Mode</span><span class="data-val">Auto Forwarding (8.8.8.8)</span></div>
+      </div>
+
+      <!-- ESP32 System Telemetry Card -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">ESP32 Hardware Monitor</span>
+          <span class="badge badge-secondary">240 MHz</span>
+        </div>
+        <div class="data-row"><span class="data-label">Free RAM (Heap)</span><span id="sysHeap" class="data-val" style="color:var(--accent)">-- KB</span></div>
+        <div class="data-row"><span class="data-label">System Uptime</span><span id="sysUptime" class="data-val">--</span></div>
+        <div class="data-row"><span class="data-label">Firmware Version</span><span id="sysVersion" class="data-val">1.0.0-phase3</span></div>
+        <div class="data-row"><span class="data-label">Microcontroller</span><span class="data-val">ESP32-WROOM-32 (DevKit V1)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: WI-FI PROFILES -->
+  <div id="tab-profiles" class="tab-content">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Saved Wi-Fi Profiles (Max 5)</span>
+        <button class="btn btn-sm" onclick="openAddProfileModal()">+ Add Network Profile</button>
+      </div>
+      <div id="profilesAlert" class="alert"></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>SSID</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="profilesTableBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--muted)">Loading saved profiles...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: WI-FI SCANNER -->
+  <div id="tab-scanner" class="tab-content">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Nearby 2.4 GHz Wi-Fi Networks</span>
+        <button id="scanBtn" class="btn btn-sm" onclick="triggerScan()">Scan Networks</button>
+      </div>
+      <div id="scanStatusText" style="font-size:0.85rem;color:var(--muted);margin-bottom:10px">Click 'Scan Networks' to discover nearby access points.</div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Signal</th>
+              <th>SSID</th>
+              <th>Channel</th>
+              <th>Security</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="scanTableBody">
+            <tr><td colspan="5" style="text-align:center;color:var(--muted)">No scan results yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: HOTSPOT CONFIG -->
+  <div id="tab-hotspot" class="tab-content">
+    <div class="card" style="max-width:560px;margin:0 auto">
+      <div class="card-head">
+        <span class="card-title">Configure PILU Hotspot (SoftAP)</span>
+      </div>
+      <div id="hotspotAlert" class="alert"></div>
+      <form onsubmit="handleSaveHotspot(event)">
+        <div class="form-group">
+          <label>Hotspot SSID (Broadcast Name)</label>
+          <input type="text" id="apSsidInput" maxlength="32" required>
+        </div>
+        <div class="form-group">
+          <label>Hotspot Password (Minimum 8 Characters)</label>
+          <div style="position:relative">
+            <input type="password" id="apPassInput" minlength="8" maxlength="64" placeholder="Leave empty to keep existing password">
+            <button type="button" onclick="togglePass('apPassInput')" style="position:absolute;right:10px;top:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem">Show</button>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-bottom:0">
+          <div class="form-group">
+            <label>Wi-Fi Channel</label>
+            <select id="apChanSelect">
+              <option value="1">Channel 1</option>
+              <option value="6">Channel 6</option>
+              <option value="11">Channel 11</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Max Allowed Clients</label>
+            <select id="apMaxClientsSelect">
+              <option value="4">4 Devices</option>
+              <option value="8" selected>8 Devices</option>
+              <option value="10">10 Devices</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" id="saveHotspotBtn" class="btn" style="width:100%;justify-content:center;margin-top:10px">Save & Apply Hotspot Settings</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TAB 5: CONNECTED CLIENTS -->
+  <div id="tab-clients" class="tab-content">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Connected Devices</span>
+        <button class="btn btn-secondary btn-sm" onclick="fetchClients()">Refresh List</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>MAC Address</th>
+              <th>Assigned Subnet</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="clientsTableBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--muted)">No devices connected.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 6: SYSTEM & SECURITY -->
+  <div id="tab-system" class="tab-content">
+    <div class="grid-2">
+      <!-- Admin Password Card -->
+      <div class="card">
+        <div class="card-head"><span class="card-title">Change Admin Password</span></div>
+        <div id="pwAlert" class="alert"></div>
+        <form onsubmit="handleChangePassword(event)">
+          <div class="form-group">
+            <label>Current Admin Password</label>
+            <input type="password" id="curPwInput" required>
+          </div>
+          <div class="form-group">
+            <label>New Admin Password (Min 6 chars)</label>
+            <input type="password" id="newPwInput" minlength="6" required>
+          </div>
+          <button type="submit" class="btn" style="width:100%;justify-content:center">Update Admin Password</button>
+        </form>
+      </div>
+
+      <!-- Reboot System Card -->
+      <div class="card">
+        <div class="card-head"><span class="card-title">System Reboot</span></div>
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:16px">
+          Safely restart the ESP32 microcontroller. Clients will temporarily disconnect for ~3 seconds while the system boots.
+        </p>
+        <button class="btn btn-danger" onclick="handleReboot()" style="width:100%;justify-content:center">Reboot ESP32</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ADD PROFILE MODAL -->
+<div id="profileModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="card-head">
+      <span class="card-title">Add / Edit Wi-Fi Profile</span>
+      <button onclick="closeModal('profileModal')" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer">&times;</button>
+    </div>
+    <div id="modalAlert" class="alert"></div>
+    <form onsubmit="handleSaveProfile(event)">
+      <div class="form-group">
+        <label>Network SSID</label>
+        <input type="text" id="profSsidInput" required maxlength="32">
+      </div>
+      <div class="form-group">
+        <label>Wi-Fi Password (WPA2/WPA3)</label>
+        <div style="position:relative">
+          <input type="password" id="profPassInput" maxlength="64" placeholder="Enter password (leave blank for Open)">
+          <button type="button" onclick="togglePass('profPassInput')" style="position:absolute;right:10px;top:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem">Show</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Priority</label>
+        <select id="profPrioritySelect">
+          <option value="0">Primary Network</option>
+          <option value="1">Secondary Network</option>
+          <option value="2">Backup Network</option>
+        </select>
+      </div>
+      <button type="submit" id="saveProfBtn" class="btn" style="width:100%;justify-content:center;margin-top:10px">Save Profile</button>
+    </form>
+  </div>
+</div>
+
+<script>
+let authToken = localStorage.getItem('pilu_token') || '';
+let statusTimer = null;
+let activeTab = 'dashboard';
+
+function showAlert(id, msg, isSuccess) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'alert ' + (isSuccess ? 'alert-success' : 'alert-danger');
+  el.innerText = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+function togglePass(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function switchTab(tabId) {
+  activeTab = tabId;
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  const target = document.getElementById('tab-' + tabId);
+  if (target) target.classList.add('active');
+  const btns = document.querySelectorAll('.nav-tab');
+  btns.forEach(btn => {
+    if (btn.getAttribute('onclick').includes(tabId)) btn.classList.add('active');
+  });
+
+  if (tabId === 'profiles') fetchProfiles();
+  if (tabId === 'clients') fetchClients();
+}
+
+async function apiCall(endpoint, method = 'GET', body = null) {
+  const opts = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Auth-Token': authToken
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const res = await fetch(endpoint, opts);
+    if (res.status === 401) {
+      document.getElementById('loginOverlay').style.display = 'flex';
+      return null;
+    }
+    return await res.json();
+  } catch (e) {
+    console.error('API Error:', e);
+    return null;
+  }
+}
+
+async function checkAuth() {
+  const data = await apiCall('/api/auth/check');
+  if (data && data.authenticated) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    startStatusPolling();
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
+  }
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const pass = document.getElementById('adminPassInput').value;
+  const btn = document.getElementById('loginBtn');
+  btn.innerHTML = '<span class="spinner"></span> Signing In...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pass })
+    });
+    const data = await res.json();
+    if (data && data.success) {
+      authToken = data.token;
+      localStorage.setItem('pilu_token', authToken);
+      document.getElementById('loginOverlay').style.display = 'none';
+      startStatusPolling();
+    } else {
+      showAlert('loginAlert', (data && data.message) ? data.message : 'Invalid password', false);
+    }
+  } catch (err) {
+    showAlert('loginAlert', 'Failed to reach ESP32 local server', false);
+  } finally {
+    btn.innerHTML = 'Sign In to Dashboard';
+    btn.disabled = false;
+  }
+}
+
+async function handleLogout() {
+  await apiCall('/api/auth/logout', 'POST');
+  authToken = '';
+  localStorage.removeItem('pilu_token');
+  if (statusTimer) clearInterval(statusTimer);
+  document.getElementById('loginOverlay').style.display = 'flex';
+}
+
+function startStatusPolling() {
+  fetchStatus();
+  if (statusTimer) clearInterval(statusTimer);
+  statusTimer = setInterval(() => {
+    if (activeTab === 'dashboard') fetchStatus();
+  }, 3500);
+}
+
+async function fetchStatus() {
+  const d = await apiCall('/api/status');
+  if (!d) return;
+
+  const pill = document.getElementById('globalStatusPill');
+  const pillText = document.getElementById('globalStatusText');
+  if (d.sta_connected) {
+    pill.className = 'status-pill pill-online';
+    pillText.innerText = 'ONLINE (' + d.sta_ssid + ')';
+    document.getElementById('staStateBadge').className = 'badge badge-green';
+    document.getElementById('staStateBadge').innerText = 'Connected';
+  } else {
+    pill.className = 'status-pill pill-offline';
+    pillText.innerText = 'OFFLINE';
+    document.getElementById('staStateBadge').className = 'badge badge-backup';
+    document.getElementById('staStateBadge').innerText = 'Disconnected';
+  }
+
+  document.getElementById('staSsid').innerText = d.sta_ssid || 'None';
+  
+  const prioEl = document.getElementById('staPriority');
+  if (prioEl) {
+    if (d.uplink_priority === 1) {
+      prioEl.innerHTML = '<span class="badge badge-primary">Priority 1 (Primary)</span>';
+    } else if (d.uplink_priority === 2) {
+      prioEl.innerHTML = '<span class="badge badge-secondary">Priority 2 (Backup)</span>';
+    } else {
+      prioEl.innerText = '--';
+    }
+  }
+  const uplEl = document.getElementById('staUplinkState');
+  if (uplEl) uplEl.innerText = d.uplink_state || '--';
+
+  document.getElementById('staRssi').innerText = d.sta_connected ? (d.sta_rssi + ' dBm (' + calcQuality(d.sta_rssi) + '%)') : '--';
+  document.getElementById('staIp').innerText = d.sta_ip || '0.0.0.0';
+  document.getElementById('staGw').innerText = d.sta_gw || '0.0.0.0';
+  document.getElementById('staChan').innerText = d.sta_channel || '--';
+
+  document.getElementById('apSsid').innerText = d.ap_ssid || 'PILU';
+  document.getElementById('apClients').innerText = d.ap_clients || 0;
+
+  document.getElementById('netConn').innerText = d.internet_online ? 'CONNECTED (Public Internet)' : 'LIMITED (No Gateway Ping)';
+  document.getElementById('netLatency').innerText = d.internet_online ? (d.internet_rtt_ms + ' ms') : '--';
+  document.getElementById('netStateBadge').className = 'badge ' + (d.internet_online ? 'badge-green' : 'badge-backup');
+  document.getElementById('netStateBadge').innerText = d.internet_online ? 'Online' : 'Offline';
+
+  document.getElementById('sysHeap').innerText = Math.round(d.free_heap / 1024) + ' KB';
+  document.getElementById('sysUptime').innerText = formatUptime(d.uptime_sec);
+  document.getElementById('sysVersion').innerText = d.version || '1.0.0-phase3';
+
+  // Pre-fill hotspot inputs if empty
+  if (!document.getElementById('apSsidInput').value) {
+    document.getElementById('apSsidInput').value = d.ap_ssid || 'PILU';
+    document.getElementById('apChanSelect').value = d.ap_channel || 1;
+    document.getElementById('apMaxClientsSelect').value = d.ap_max_clients || 8;
+  }
+}
+
+function calcQuality(rssi) {
+  if (rssi <= -100) return 0;
+  if (rssi >= -50) return 100;
+  return 2 * (rssi + 100);
+}
+
+function formatUptime(sec) {
+  if (!sec) return '0s';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return `${h}h ${m}m ${s}s`;
+}
+
+// PROFILES MANAGEMENT
+async function fetchProfiles() {
+  const d = await apiCall('/api/profiles');
+  const tb = document.getElementById('profilesTableBody');
+  if (!d || !d.profiles || d.profiles.length === 0) {
+    tb.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted)">No saved profiles found.</td></tr>';
+    return;
+  }
+  let html = '';
+  d.profiles.forEach(p => {
+    let pBadge = '<span class="badge badge-primary">Priority 1 (Primary)</span>';
+    if (p.priority === 1) pBadge = '<span class="badge badge-secondary">Priority 2 (Backup)</span>';
+    if (p.priority >= 2) pBadge = '<span class="badge badge-backup">Priority ' + (p.priority + 1) + '</span>';
+
+    const isCurrent = (p.ssid === d.current_ssid);
+    const statusBadge = isCurrent
+      ? '<span class="badge badge-green">Active Upstream</span>'
+      : (p.enabled ? '<span style="color:var(--muted)">Saved</span>' : '<span style="color:var(--danger)">Disabled</span>');
+
+    const prioBtn = (p.priority !== 0)
+      ? `<button class="btn btn-sm btn-outline" style="margin-right:4px" onclick="setProfilePriority('${escapeHtml(p.ssid)}', 0)">Make Primary</button>`
+      : `<button class="btn btn-sm btn-outline" style="margin-right:4px" onclick="setProfilePriority('${escapeHtml(p.ssid)}', 1)">Make Backup</button>`;
+
+    html += `<tr>
+      <td><strong>${escapeHtml(p.ssid)}</strong></td>
+      <td>${pBadge}</td>
+      <td>${statusBadge}</td>
+      <td>
+        ${!isCurrent ? `<button class="btn btn-sm" onclick="switchProfile('${escapeHtml(p.ssid)}')">Connect</button>` : ''}
+        ${prioBtn}
+        <button class="btn btn-danger btn-sm" onclick="deleteProfile('${escapeHtml(p.ssid)}')">Delete</button>
+      </td>
+    </tr>`;
+  });
+  tb.innerHTML = html;
+}
+
+async function setProfilePriority(ssid, priority) {
+  const res = await apiCall('/api/profiles/priority', 'POST', { ssid, priority });
+  if (res && res.success) {
+    showToast('Priority updated for ' + ssid, 'success');
+    fetchProfiles();
+    fetchStatus();
+  } else {
+    showToast('Failed to update priority', 'error');
+  }
+}
+
+function openAddProfileModal(prefillSsid = '') {
+  document.getElementById('profSsidInput').value = prefillSsid;
+  document.getElementById('profPassInput').value = '';
+  document.getElementById('profPrioritySelect').value = '1';
+  document.getElementById('profileModal').style.display = 'flex';
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+async function handleSaveProfile(e) {
+  e.preventDefault();
+  const ssid = document.getElementById('profSsidInput').value.trim();
+  const password = document.getElementById('profPassInput').value;
+  const priority = parseInt(document.getElementById('profPrioritySelect').value);
+
+  const res = await apiCall('/api/profiles', 'POST', { ssid, password, priority, enabled: true });
+  if (res && res.success) {
+    closeModal('profileModal');
+    showAlert('profilesAlert', 'Profile saved successfully!', true);
+    fetchProfiles();
+  } else {
+    showAlert('modalAlert', (res && res.message) ? res.message : 'Failed to save profile', false);
+  }
+}
+
+async function switchProfile(ssid) {
+  if (!confirm(`Switch upstream connection to '${ssid}'?`)) return;
+  const res = await apiCall('/api/profiles/switch', 'POST', { ssid });
+  if (res && res.success) {
+    showAlert('profilesAlert', `Connecting to '${ssid}'...`, true);
+    setTimeout(fetchProfiles, 1500);
+  } else {
+    showAlert('profilesAlert', 'Failed to trigger profile switch', false);
+  }
+}
+
+async function deleteProfile(ssid) {
+  if (!confirm(`Delete saved profile for '${ssid}'?`)) return;
+  const res = await apiCall('/api/profiles/delete', 'POST', { ssid });
+  if (res && res.success) {
+    showAlert('profilesAlert', `Deleted profile '${ssid}'`, true);
+    fetchProfiles();
+  } else {
+    showAlert('profilesAlert', 'Failed to delete profile', false);
+  }
+}
+
+// WI-FI SCANNER
+let scanPollTimer = null;
+async function triggerScan() {
+  const btn = document.getElementById('scanBtn');
+  btn.innerHTML = '<span class="spinner"></span> Scanning...';
+  btn.disabled = true;
+  document.getElementById('scanStatusText').innerText = 'Scanning 2.4 GHz airwaves...';
+
+  await apiCall('/api/scan', 'POST');
+
+  if (scanPollTimer) clearInterval(scanPollTimer);
+  scanPollTimer = setInterval(pollScanResults, 1200);
+}
+
+async function pollScanResults() {
+  const d = await apiCall('/api/scan');
+  if (!d) return;
+
+  if (d.status === 'running') {
+    return; // still scanning
+  }
+
+  clearInterval(scanPollTimer);
+  const btn = document.getElementById('scanBtn');
+  btn.innerHTML = 'Scan Networks';
+  btn.disabled = false;
+
+  const tb = document.getElementById('scanTableBody');
+  if (!d.networks || d.networks.length === 0) {
+    tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No networks discovered.</td></tr>';
+    document.getElementById('scanStatusText').innerText = 'Scan completed. 0 networks found.';
+    return;
+  }
+
+  document.getElementById('scanStatusText').innerText = `Scan completed. Found ${d.networks.length} network(s):`;
+  let html = '';
+  d.networks.forEach(net => {
+    const bars = renderSignalBars(net.rssi);
+    html += `<tr>
+      <td>${bars} ${net.rssi} dBm</td>
+      <td><strong>${escapeHtml(net.ssid)}</strong></td>
+      <td>${net.channel}</td>
+      <td>${net.secure ? 'WPA2/WPA3' : 'OPEN'}</td>
+      <td>
+        <button class="btn btn-sm btn-secondary" onclick="useNetworkFromScan('${escapeHtml(net.ssid)}')">Use</button>
+      </td>
+    </tr>`;
+  });
+  tb.innerHTML = html;
+}
+
+function renderSignalBars(rssi) {
+  const b1 = rssi > -90 ? 'on' : '';
+  const b2 = rssi > -80 ? 'on' : '';
+  const b3 = rssi > -70 ? 'on' : '';
+  const b4 = rssi > -60 ? 'on' : '';
+  return `<span class="signal-bar-wrap"><span class="signal-bar bar-1 ${b1}"></span><span class="signal-bar bar-2 ${b2}"></span><span class="signal-bar bar-3 ${b3}"></span><span class="signal-bar bar-4 ${b4}"></span></span>`;
+}
+
+function useNetworkFromScan(ssid) {
+  switchTab('profiles');
+  openAddProfileModal(ssid);
+}
+
+// HOTSPOT CONFIG
+async function handleSaveHotspot(e) {
+  e.preventDefault();
+  const ssid = document.getElementById('apSsidInput').value.trim();
+  const password = document.getElementById('apPassInput').value;
+  const channel = parseInt(document.getElementById('apChanSelect').value);
+  const max_clients = parseInt(document.getElementById('apMaxClientsSelect').value);
+
+  const btn = document.getElementById('saveHotspotBtn');
+  btn.innerHTML = '<span class="spinner"></span> Applying...';
+  btn.disabled = true;
+
+  const res = await apiCall('/api/hotspot', 'POST', { ssid, password, channel, max_clients });
+  btn.innerHTML = 'Save & Apply Hotspot Settings';
+  btn.disabled = false;
+
+  if (res && res.success) {
+    showAlert('hotspotAlert', 'Hotspot configuration updated and applied!', true);
+    fetchStatus();
+  } else {
+    showAlert('hotspotAlert', (res && res.message) ? res.message : 'Failed to update hotspot', false);
+  }
+}
+
+// CLIENTS
+async function fetchClients() {
+  const d = await apiCall('/api/clients');
+  const tb = document.getElementById('clientsTableBody');
+  if (!d || !d.clients || d.clients.length === 0) {
+    tb.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted)">No devices currently connected to PILU.</td></tr>';
+    return;
+  }
+  let html = '';
+  d.clients.forEach((c, idx) => {
+    html += `<tr>
+      <td>${idx + 1}</td>
+      <td><code>${c.mac}</code></td>
+      <td>192.168.4.x</td>
+      <td><span class="badge badge-green">Active</span></td>
+    </tr>`;
+  });
+  tb.innerHTML = html;
+}
+
+// SECURITY & REBOOT
+async function handleChangePassword(e) {
+  e.preventDefault();
+  const current_password = document.getElementById('curPwInput').value;
+  const new_password = document.getElementById('newPwInput').value;
+
+  const res = await apiCall('/api/admin/password', 'POST', { current_password, new_password });
+  if (res && res.success) {
+    showAlert('pwAlert', 'Admin password successfully updated!', true);
+    document.getElementById('curPwInput').value = '';
+    document.getElementById('newPwInput').value = '';
+  } else {
+    showAlert('pwAlert', (res && res.message) ? res.message : 'Password update failed', false);
+  }
+}
+
+async function handleReboot() {
+  if (!confirm('Reboot the ESP32 Repeater now? Connection will be lost for a few seconds.')) return;
+  await apiCall('/api/system/restart', 'POST');
+  alert('Reboot signal sent. The ESP32 is restarting...');
+  setTimeout(() => { location.reload(); }, 5000);
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  checkAuth();
+});
+</script>
+</body>
+</html>
+)rawliteral";
+
+#endif // PILU_DASHBOARD_HTML_H
